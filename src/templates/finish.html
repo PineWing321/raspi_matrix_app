@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}
+<h2 style="text-align: center;">Finalize Shift</h2>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto; padding: 1rem;">
+    <form method="POST" action="/finish_shift2">
+        <input type="hidden" name="shift_id" value="{{ shift_id }}">
+
+        <div style="background: #fff; padding: 1.5rem; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <p style="margin-bottom: 1.2rem; font-size: 1.1rem;">
+                Please enter final production data for this shift:
+            </p>
+
+            <label for="total_parts" style="display: block; margin-bottom: 0.4rem;"><strong>Total Parts Produced:</strong></label>
+            <input type="number" id="total_parts" name="total_parts" min="0" required style="
+                width: 100%;
+                padding: 0.5rem;
+                margin-bottom: 1rem;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+            ">
+
+            <label for="total_rejects" style="display: block; margin-bottom: 0.4rem;"><strong>Total Rejected Parts:</strong></label>
+            <input type="number" id="total_rejects" name="total_rejects" min="0" required style="
+                width: 100%;
+                padding: 0.5rem;
+                margin-bottom: 1.5rem;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+            ">
+
+            <button type="submit" style="
+                background-color: #28a745;
+                color: white;
+                padding: 0.6rem 1.2rem;
+                border: none;
+                border-radius: 6px;
+                font-size: 1rem;
+                cursor: pointer;
+            ">
+                Submit Final Data
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

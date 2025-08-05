@@ -1,0 +1,137 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Edit Shift</h2>
+    <a href="/index">Back to Current Shift</a>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post">
+        <fieldset>
+            <label>
+                Start Time (Local)
+                <input type="datetime-local" name="start_time" id="start-time" readonly>
+                <span id="start-utc" style="display: none;">{{ log.start_time }}</span>
+            </label>
+
+            {% if log.stop_time %}
+            <label>
+                Stop Time (Local)
+                <input type="datetime-local" name="stop_time" id="stop-time" readonly>
+                <span id="stop-utc" style="display: none;">{{ log.stop_time }}</span>
+            </label>
+
+            <!-- CAUSE FIRST and LOCKED -->
+            <label>
+                Cause:
+                <select id="cause-select" disabled>
+                    {% for option in ["fence_fault", "e_stop", "missed_pick", "missed_placement", "quality_stop", "collision", "sensor_audit_flag", "operator_stop", "other"] %}
+                    <option value="{{ option }}" {% if log.cause == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" name="cause" value="{{ log.cause }}">
+            </label>
+
+            <!-- REASON second -->
+            <label>
+                Reason:
+                <select name="reason" id="reason-select" required>
+                    {% for option in ["Machine Related", "Planned Stop", "Non-Machine Related", "Break"] %}
+                    <option value="{{ option }}" {% if log.reason == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label id="comment-label">
+                Comments:
+                <input type="text" name="comments" id="comment-input" value="{{ log.comments or '' }}">
+            </label>
+
+            {% else %}
+            <span id="stop-utc" style="display: none;"></span>
+            {% endif %}
+        </fieldset>
+        <input type="submit" value="Save Changes" />
+    </form>
+</article>
+
+<script>
+function utcToLocalInputString(utcString) {
+    if (!utcString) return "";
+    const date = new Date(utcString + "Z");
+    const pad = n => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const startUTC = document.getElementById("start-utc").innerText.trim();
+    document.getElementById("start-time").value = utcToLocalInputString(startUTC);
+
+    const stopUTCEl = document.getElementById("stop-utc");
+    if (stopUTCEl && stopUTCEl.innerText.trim()) {
+        const stopUTC = stopUTCEl.innerText.trim();
+        const stopInput = document.getElementById("stop-time");
+        if (stopInput) stopInput.value = utcToLocalInputString(stopUTC);
+    }
+
+    const causeSelect = document.getElementById("cause-select");
+    const reasonSelect = document.getElementById("reason-select");
+    const commentInput = document.getElementById("comment-input");
+
+    const causeLogic = {
+        "fence_fault": { reason: "Non-Machine Related", requireComment: false },
+        "e_stop": { reason: "Non-Machine Related", requireComment: false },
+        "missed_pick": { reason: "Machine Related", requireComment: false },
+        "missed_placement": { reason: "Machine Related", requireComment: false },
+        "quality_stop": { reason: "", requireComment: true },
+        "collision": { reason: "Machine Related", requireComment: false },
+        "sensor_audit_flag": { reason: "Machine Related", requireComment: false },
+        "operator_stop": { reason: "", requireComment: false },
+        "other": { reason: "", requireComment: true }
+    };
+
+    // Infer reason if current one is invalid or blank
+    function inferReason() {
+        const selectedCause = causeSelect.value;
+        const config = causeLogic[selectedCause];
+        const existingReason = reasonSelect.value;
+
+        if ((!existingReason || existingReason === "unconfirmed") && config?.reason) {
+            reasonSelect.value = config.reason;
+        }
+
+        if (config?.requireComment) {
+            commentInput.setAttribute("required", "required");
+        } else {
+            commentInput.removeAttribute("required");
+        }
+    }
+
+    inferReason();
+
+    document.querySelector("form").addEventListener("submit", (e) => {
+        const reason = reasonSelect.value.trim();
+        const comment = commentInput.value.trim();
+        const selectedCause = causeSelect.value.trim();
+        const requiresComment = causeLogic[selectedCause]?.requireComment ?? false;
+
+        if (!reason || reason === "unconfirmed") {
+            e.preventDefault();
+            alert("Please select a valid reason. 'unconfirmed' is not allowed.");
+        }
+
+        if (requiresComment && (!comment || comment.toLowerCase() === "unconfirmed")) {
+            e.preventDefault();
+            alert("A valid comment is required for this cause.");
+        }
+    });
+});
+</script>
+{% endblock %}

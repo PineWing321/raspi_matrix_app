@@ -1,0 +1,119 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<h2 style="text-align: center;">Shifts for {{ date }}</h2>
+{% endblock %}
+
+{% block content %}
+{% if summaries %}
+{% set sorted = summaries | sort(attribute="planned_start") %}
+
+<div style="max-width: 720px; margin: 2rem auto; padding: 0 1rem;">
+    <form method="GET" action="/history" style="margin-bottom: 1.5rem;">
+        <button type="submit" style="
+            background-color: #005f73;
+            color: white;
+            font-weight: bold;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+        ">
+            ← Back to History
+        </button>
+    </form>
+
+    {% if daily_summary %}
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <div style="background-color: #f1f1f1; padding: 0.8rem 1.2rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: right;">
+            <p style="margin: 0;"><strong>Daily MR Availability:</strong> {{ daily_summary["availability_percentage"] | default('N/A') | int }}%</p>
+            <p style="margin: 0;"><strong>Daily Availability:</strong> {{ daily_summary["oee"] | default('N/A') | int }}%</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Shift Cards -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for shift in sorted %}
+        <form method="POST" action="/shifts_for_date" style="
+            background: #fff;
+            border-radius: 10px;
+            padding: 1.2rem 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex-grow: 1; padding-right: 1rem;">
+                    <p style="margin: 0 0 6px;"><strong>Shift {{ loop.index }}</strong></p>
+
+                    <div style="display: flex; justify-content: space-between; margin: 2px 0;">
+                        <strong>Start:</strong>
+                        <span class="utc-time" style="white-space: nowrap;">{{ shift["planned_start"] }}</span>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; margin: 2px 0;">
+                        <strong>End:</strong>
+                        <span class="utc-time" style="white-space: nowrap;">{{ shift["planned_end"] }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 2px 0;">
+                        <strong>Availability:</strong>
+                        <span>{{ shift["total_efficiency"] | int }}%</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin: 2px 0;">
+                        <strong>MR Availability:</strong>
+                        <span>{{ shift["machine_efficiency"] | int }}%</span>
+                    </div>
+
+                    <input type="hidden" name="date" value="{{ date }}" />
+                </div>
+
+                <button type="submit" name="shift_id" value="{{ shift["shift_id"] }}" style="
+                    min-width: 120px;
+                    padding: 10px 16px;
+                    background-color: #0077b6;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-weight: bold;
+                ">
+                    View Shift
+                </button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Inline JS: Convert UTC timestamps to local time -->
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const spans = document.querySelectorAll(".utc-time");
+        spans.forEach(span => {
+            let raw = span.textContent.trim();
+            if (!raw) return;
+
+            // Fix format if missing 'T' and 'Z'
+            if (!raw.includes("T")) raw = raw.replace(" ", "T");
+            if (!raw.endsWith("Z")) raw += "Z";
+
+            const date = new Date(raw);
+            if (isNaN(date)) return;
+
+            const localString = date.toLocaleString("en-US", {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            span.textContent = localString;
+        });
+    });
+</script>
+
+{% else %}
+<p style="text-align: center; margin-top: 2rem;">No shifts found for this date.</p>
+{% endif %}
+{% endblock %}

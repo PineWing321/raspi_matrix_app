@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Waiting for Shift Start</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="stylesheet" href="/static/pico.colors.min.css">
+    <style>
+        body {
+            background-color: #e2e3e5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .waiting-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        #start-shift-btn {
+            display: none;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="waiting-box">
+        <h2>Shift has not started yet</h2>
+        <p><strong>Time until shift begins:</strong></p>
+        <h3 id="countdown">Calculating...</h3>
+
+        <div id="adjust-shift-container" style="margin-top: 1rem;">
+            <a href="/adjust_shift" role="button" class="pico-background-blue-600 outline secondary">Adjust Shift</a>
+        </div>
+
+        <div id="start-shift-btn">
+            <a href="/index" role="button" class="pico-background-green-600">Start Shift</a>
+        </div>
+    </div>
+
+    <script>
+        const plannedStart = new Date("{{ planned_start }}Z");
+
+        function updateCountdown() {
+            const now = new Date();
+            const seconds = Math.floor((plannedStart - now) / 1000);
+            const countdown = document.getElementById("countdown");
+            const startBtn = document.getElementById("start-shift-btn");
+
+            if (seconds <= 0) {
+                countdown.innerText = "00:00:00";
+                startBtn.style.display = "block";
+                return;
+            }
+
+            const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            countdown.innerText = `${h}:${m}:${s}`;
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>

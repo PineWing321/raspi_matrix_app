@@ -1,0 +1,26 @@
+.history-main {
+  text-align: center;
+  padding: 3rem;
+}
+
+.button-grid {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.button-grid button {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 8px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.button-grid button:hover {
+  background-color: #0056b3;
+}

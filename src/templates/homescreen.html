@@ -1,0 +1,95 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<h2>Home Screen</h2>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
+    <div>System ID: <strong>{{ auth_id }}</strong></div>
+    <form action="/logout" method="get">
+        <button type="submit">Log out</button>
+    </form>
+</div>
+
+<!-- ✅ If planned shift exists, show planned start/end times -->
+{% if display_planned_shift %}
+<div style="text-align: center; margin-bottom: 1rem;">
+    <h3>Planned Shift Info</h3>
+    <p><strong>Start:</strong> <span id="local-start"></span></p>
+    <p><strong>End:</strong> <span id="local-end"></span></p>
+</div>
+
+<script>
+    const rawStart = "{{ planned_start|replace(' ', 'T') }}Z";
+    const rawEnd = "{{ planned_end|replace(' ', 'T') }}Z";
+    const plannedStart = new Date(rawStart);
+    const plannedEnd = new Date(rawEnd);
+
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("local-start").textContent = plannedStart.toLocaleString();
+        document.getElementById("local-end").textContent = plannedEnd.toLocaleString();
+    });
+</script>
+{% endif %}
+
+<!-- ✅ Shift window active (states 3 or 5) -->
+{% if is_shift_in_window %}
+<div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+    <p style="font-weight: bold; color: blue; font-size: 1.2rem;">✅ Shift should be running now.</p>
+
+    <div style="margin-top: 0.8rem;">
+        <a href="/index" role="button" class="pico-background-blue-600 outline secondary">Go to current shift</a>
+    </div>
+
+    <div style="margin-top: 0.6rem;">
+        <a href="/shift_manager" role="button" class="pico-background-blue-600 outline secondary">Adjust Shift</a>
+    </div>
+</div>
+
+<!-- ❌ Not in window, but current state 2 or 4 (pre-start or late-start) -->
+{% elif current_state in [2, 4] %}
+<div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+    <div id="shift-status" style="margin-bottom: 1rem; font-weight: bold; color: green;"></div>
+
+    <div style="margin-top: 0.6rem;">
+        <a href="/shift_manager" role="button" class="pico-background-blue-600 outline secondary">Adjust Shift</a>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const now = new Date();
+        const diff = plannedStart - now;
+        const statusDiv = document.getElementById("shift-status");
+
+        if (diff > 0) {
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            statusDiv.textContent = `⏳ Shift starts in ${minutes}m ${seconds}s`;
+        } else {
+            statusDiv.textContent = "⚠️ Shift should have started.";
+            statusDiv.style.color = "orange";
+        }
+    });
+</script>
+
+<!-- ❌ No shift planned -->
+{% else %}
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center;">
+    <h2>Welcome</h2>
+    <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">No shift is currently planned.</p>
+    <p style="color: #555; margin-bottom: 1.5rem;">Click below to plan a new shift and get started.</p>
+    <a href="/shift_manager" role="button" class="pico-background-green-600 outline secondary" style="font-size: 1.1rem; padding: 0.7rem 1.4rem;">Plan Shift</a>
+</div>
+{% endif %}
+
+<!-- ✅ Always render if unfinished is True -->
+{% if unfinished %}
+<div style="text-align: center; margin-top: 2rem;">
+    <a href="/finish_shift" role="button" class="pico-background-yellow-600 outline secondary" style="font-size: 1.05rem; padding: 0.6rem 1.2rem;">
+        Finish incomplete shift
+    </a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,270 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<h2 style="text-align: center; margin-top: 2rem;">Shift Summary Details (Times shown in your local timezone)</h2>
+{% endblock %}
+{% block head%}
+<style>
+    .tooltip-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .tooltip-icon {
+        display: inline-block;
+        margin-left: 6px;
+        color: #555;
+        cursor: pointer;
+        position: relative;
+        font-size: 1.1em;
+        user-select: none;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        opacity: 0;
+        width: 240px;
+        background-color: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 8px 10px;
+        position: absolute;
+        z-index: 999;
+        bottom: 120%;
+        left: 0;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+        white-space: normal;
+    }
+
+    .tooltip-icon:hover .tooltip-text,
+    .tooltip-icon.active .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    @media (hover: none) {
+        .tooltip-icon:hover .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+{% block content %}
+{% if shift_data %}
+<div style="max-width: 700px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f4f4f4;">
+                <th style="text-align: left; padding: 12px; font-weight: bold;">Field</th>
+                <th style="text-align: left; padding: 12px; font-weight: bold;">Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td style="padding: 10px;">Planned Start</td><td><span class="utc-time">{{ shift_data["planned_start"] }}</span></td></tr>
+            <tr><td style="padding: 10px;">Planned End</td><td><span class="utc-time">{{ shift_data["planned_end"] }}</span></td></tr>
+            {% if breaks %}
+            <tr>
+                <td style="padding: 10px;">Break Windows</td>
+                <td style="padding: 10px;">
+                    <select style="width: 100%; padding: 0.4rem; border-radius: 6px;">
+                        <option disabled selected>View A Break</option>
+                        {% for b in breaks %}
+                        <option>
+                            {{ b.label }}:
+                            <span class="utc-time">{{ b.start }}</span>
+                            →
+                            <span class="utc-time">{{ b.end }}</span>
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+            </tr>
+            {% endif %}
+
+
+           
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Planned Operating Time
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Expected machine run time excluding breaks.</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["engaged_runtime"] | hmm_format }}</td>
+            </tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Operating Time
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Time the machine was actually running.</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["total_runtime"] | hmm_format }}</td>
+            </tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        OP + Non-MR Downtime
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Total active time including non-machine-related delays.</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["machine_uptime"] | hmm_format }}</td>
+            </tr>
+
+            <tr><td style="padding: 10px;">Non-MR Downtime</td><td>{{ shift_data["available_downtime"] | hmm_format }}</td></tr>
+            <tr><td style="padding: 10px;">MR Downtime</td><td>{{ shift_data["unavailable_downtime"] | hmm_format }}</td></tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        MR Availability %
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text"> = (Operating Time + Non-MR Downtime) / Planned Operating Time</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["machine_efficiency"] | int }}%</td>
+            </tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Availability %
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Total efficiency = Operating Time ÷ Planned Operating Time.</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["total_efficiency"] | int }}%</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Quality %
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Good parts ÷ Total parts (including rejects).</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["quality"] | default(0) | int }}%</td>
+            </tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Performance %
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Actual output ÷ Expected output (based on cycle time).</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["performance"] | default(0) | int }}%</td>
+            </tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Final OEE %
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Availability × Performance × Quality / 10000.</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["final_oee"] | default(0) | int }}%</td>
+            </tr>
+
+            <tr>
+                <td style="padding: 10px;">
+                    <div class="tooltip-wrap">
+                        Final MR OEE %
+                        <span class="tooltip-icon">
+                            &#9432;
+                            <span class="tooltip-text">Uses MR Availability instead of total availability.</span>
+                        </span>
+                    </div>
+                </td>
+                <td>{{ shift_data["final_mr_oee"] | default(0) | int }}%</td>
+            </tr>
+
+            <tr><td style="padding: 10px;">Total Stops</td><td>{{ shift_data["total_stops"] }}</td></tr>
+            <tr><td style="padding: 10px;">Planned Stops</td><td>{{ shift_data["planned_stops"] }}</td></tr>
+            <tr><td style="padding: 10px;">Breaks</td><td>{{ shift_data["break_stops"] }}</td></tr>
+            <tr><td style="padding: 10px;">Machine Errors</td><td>{{ shift_data["machine_error_stops"] }}</td></tr>
+        </tbody>
+    </table>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+        <form method="POST" action="/one_shift_history">
+            <input type="hidden" name="shift_id" value="{{ shift_id }}">
+            <input type="hidden" name="date" value="{{ date }}">
+            <button type="submit" style="padding: 10px 20px; background-color: #007BFF; border: none; color: white; border-radius: 6px; cursor: pointer;">View Logs</button>
+        </form>
+
+        <form method="GET" action="/shifts_for_date">
+            <input type="hidden" name="date" value="{{ date }}" />
+            <button type="submit" style="padding: 10px 20px; background-color: #007BFF; border: none; color: white; border-radius: 6px; cursor: pointer;">Back To Shifts For Date</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const spans = document.querySelectorAll(".utc-time");
+        spans.forEach(span => {
+            let raw = span.textContent.trim();
+            if (!raw) return;
+            if (!raw.includes("T")) raw = raw.replace(" ", "T");
+            if (!raw.endsWith("Z")) raw += "Z";
+            const date = new Date(raw);
+            if (isNaN(date)) return;
+            const localString = date.toLocaleString("en-US", {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+            span.textContent = localString;
+        });
+
+        // Tooltip logic
+        document.querySelectorAll('.tooltip-icon').forEach(icon => {
+            icon.addEventListener('click', function (e) {
+                e.stopPropagation();
+                document.querySelectorAll('.tooltip-icon').forEach(el => {
+                    if (el !== icon) el.classList.remove('active');
+                });
+                icon.classList.toggle('active');
+            });
+        });
+        window.addEventListener('click', () => {
+            document.querySelectorAll('.tooltip-icon.active').forEach(el => el.classList.remove('active'));
+        });
+    });
+</script>
+
+
+{% else %}
+<p style="text-align: center; margin-top: 2rem;">No data available for this shift.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ending Shift...</title>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Check if localStorage has any data
+            if (localStorage.length > 0) {
+                console.log("localStorage has data. Clearing...");
+                localStorage.clear();
+            } else {
+                console.log("localStorage already empty. Skipping clear.");
+            }
+
+            // Redirect after a brief pause
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 500);
+        });
+    </script>
+</head>
+<body>
+    <p style="text-align: center; margin-top: 2rem;">Ending shift... Redirecting to Home.</p>
+</body>
+</html>

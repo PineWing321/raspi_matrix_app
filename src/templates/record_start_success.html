@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<p>Shift successfully started. Redirecting...</p>
+<script>
+    const authId = "{{ auth_id }}";  // make sure this is passed into the template
+    const shiftId = "{{ shift_id }}";
+    localStorage.setItem(`clockRunning_${authId}`, "true");
+    localStorage.setItem(`shiftId_${authId}`, shiftId);
+    setTimeout(() => {
+        window.location.href = "/index";
+    }, 500);
+</script>
+{% endblock %}

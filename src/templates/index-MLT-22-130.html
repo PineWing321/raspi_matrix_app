@@ -1,0 +1,411 @@
+﻿﻿﻿{% extends "base.html" %}
+
+{% block title %}
+<h2>Current Shift Summary</h2>
+{% endblock %}
+{% block head%}
+<style>
+    .tooltip-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .tooltip-icon {
+        display: inline-block;
+        margin-left: 6px;
+        color: #555;
+        cursor: pointer;
+        position: relative;
+        font-size: 1.1em;
+        user-select: none;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        opacity: 0;
+        width: 240px;
+        background-color: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 8px 10px;
+        position: absolute;
+        z-index: 999;
+        bottom: 120%;
+        left: 0;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+        white-space: normal;
+    }
+
+    .tooltip-icon:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .tooltip-icon.active .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    @media (hover: none) {
+        .tooltip-icon:hover .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+        }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.1); font-family: 'Segoe UI', sans-serif;">
+
+    <div style="max-width: 400px; margin: 0 auto;">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">Planned Shift</h3>
+            {% if clock_running %}
+            <span style="color: black; font-weight: bold;">Stop clock to end shift</span>
+            {% elif shift_blocked %}
+            <span style="color: gray; font-weight: bold;">Waiting for shift to start</span>
+            {% else %}
+            <a href="/end_shift" role="button" class="pico-background-red-600" style="padding: 6px 12px;">End Shift</a>
+            {% endif %}
+        </div>
+
+        {% if planned_shift %}
+        <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 1.5rem;">
+            <tbody>
+                <tr><th style="text-align: left; width: 60%; padding: 8px;">Planned Start</th><td style="text-align: right; width: 40%; padding: 8px;"><span class="utc-time" data-utc="{{ planned_start or '' }}"></span></td></tr>
+                <tr><th style="text-align: left; width: 60%; padding: 8px;">Planned End</th><td style="text-align: right; width: 40%; padding: 8px;"><span class="utc-time" data-utc="{{ planned_end or '' }}"></span></td></tr>
+                <tr><th style="text-align: left; width: 60%; padding: 8px;">Break Start</th><td style="text-align: right; width: 40%; padding: 8px;"><span class="utc-time" data-utc="{{ break_start or '' }}"></span></td></tr>
+                <tr><th style="text-align: left; width: 60%; padding: 8px;">Break End</th><td style="text-align: right; width: 40%; padding: 8px;"><span class="utc-time" data-utc="{{ break_end or '' }}"></span></td></tr>
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: red; text-align: center;">No planned shift found.</p>
+        {% endif %}
+
+        <h3 style="margin: 2rem 0 0.5rem;">Shift Data</h3>
+        {% if shift_analytics %}
+        <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+            <tbody>
+                <tr>
+                    <th style="text-align: left; width: 60%; padding: 8px;">
+                        <div class="tooltip-wrap">
+                            Operating Time
+                            <span class="tooltip-icon">
+                                &#9432;
+                                <span class="tooltip-text">Total time the machine was actively running during the shift.</span>
+                            </span>
+                        </div>
+                    </th>
+                    <td style="text-align: right; width: 40%; padding: 8px;" id="total_runtime">{{ shift_analytics['total_runtime'] or "00:00:00" }}</td>
+                </tr>
+
+                <tr>
+                    <th style="text-align: left; width: 60%; padding: 8px;">
+                        <div class="tooltip-wrap">
+                            Planned Operating Time
+                            <span class="tooltip-icon">
+                                &#9432;
+                                <span class="tooltip-text">Expected machine run time excluding planned breaks.</span>
+                            </span>
+                        </div>
+                    </th>
+                    <td style="text-align: right; padding: 8px;" id="planned_runtime">{{ shift_analytics['planned_runtime'] or "00:00:00" }}</td>
+                </tr>
+
+                <tr>
+                    <th style="text-align: left; padding: 8px;">
+                        <div class="tooltip-wrap">
+                            Downtime due to non-Mr issues
+                            <span class="tooltip-icon">
+                                &#9432;
+                                <span class="tooltip-text">Time lost due to human or external causes not related to machinery.</span>
+                            </span>
+                        </div>
+                    </th>
+                    <td style="text-align: right; padding: 8px;" id="non_machine_downtime">{{ shift_analytics['non_downtime'] or "00:00:00" }}</td>
+                </tr>
+
+                <tr>
+                    <th style="text-align: left; padding: 8px;">
+                        <div class="tooltip-wrap">
+                            Downtime Caused By Machine
+                            <span class="tooltip-icon">
+                                &#9432;
+                                <span class="tooltip-text">Time lost due to machine faults, errors, or malfunctions.</span>
+                            </span>
+                        </div>
+                    </th>
+                    <td style="text-align: right; padding: 8px;" id="machine_downtime">{{ shift_analytics['machine_downtime'] or "00:00:00" }}</td>
+                </tr>
+
+                <tr>
+                    <th style="text-align: left; padding: 8px;">
+                        <div class="tooltip-wrap">
+                            MR Availability %
+                            <span class="tooltip-icon">
+                                &#9432;
+                                <span class="tooltip-text">Percent of time the machine was available, excluding MR-related issues.</span>
+                            </span>
+                        </div>
+                    </th>
+                    <td style="text-align: right; padding: 8px;" id="machine_efficiency">{{ shift_analytics["machine_efficiency"] | int }}%</td>
+                </tr>
+
+                <tr>
+                    <th style="text-align: left; padding: 8px;">
+                        <div class="tooltip-wrap">
+                            Availability %
+                            <span class="tooltip-icon">
+                                &#9432;
+                                <span class="tooltip-text">Overall availability = Operating Time ÷ Planned Operating Time.</span>
+                            </span>
+                        </div>
+                    </th>
+                    <td style="text-align: right; padding: 8px;" id="OEE">{{ shift_analytics["OEE"] | int }}%</td>
+                </tr>
+
+                <tr style="display: none;">
+                    <th>Machine Uptime</th>
+                    <td id="machine_uptime">{{ shift_analytics["machine_uptime"] or "00:00:00" }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% else %}
+        <p style="text-align: center;">No analytics available.</p>
+        {% endif %}
+
+        <div id="extend-shift-container" style="display: none; text-align: right; margin-top: 1rem;">
+            <a href="/extend_shift" role="button" class="pico-background-blue-600 outline secondary">Extend Shift</a>
+        </div>
+        <p id="extend-shift-text" style="display: none; margin-top: 0.5rem; text-align: right;">
+            End Shift, or Extend Current Shift
+        </p>
+    </div>
+
+    <div id="adjust-shift-container" style="display: none; text-align: right; margin-top: 1rem;">
+        <a href=" /adjust_shift" role="button" class="pico-background-blue-600" outline secondary">adjust shift</a>
+    </div>
+    <p id="adjust-shift-text" style="display: none; margin-top: 0.5rem; text-align: right">
+        adjust shift
+    </p>
+    {% if planned_shift %}
+    <script>
+const authKey = AUTH_ID;
+const plannedStart = new Date("{{ planned_shift['planned_start'].replace(' ', 'T') }}Z");
+const plannedEnd = new Date("{{ planned_shift['planned_end'].replace(' ', 'T') }}Z");
+const shiftIds = "{{ planned_shift['planned_start'] }}";  // declared once here
+
+function convertUTCToLocal() {
+    document.querySelectorAll('.utc-time').forEach(el => {
+        const utcString = el.getAttribute('data-utc');
+        if (!utcString) return;
+        const local = new Date(utcString + 'Z');
+        el.innerText = local.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    });
+}
+convertUTCToLocal();
+
+{% if clock_running %}
+const existing = localStorage.getItem(`${authKey}_live_shift_metrics`);
+let needsInit = true;
+
+if (existing) {
+    try {
+        const parsed = JSON.parse(existing);
+        if (parsed.shiftIds === shiftIds) needsInit = false;
+    } catch (e) {}
+}
+
+if (needsInit) {
+    const parseTime = (t) => t.split(":").map(Number).reduce((acc, val, i) => acc + val * [3600, 60, 1][i], 0);
+    const machineUptime = parseTime(document.getElementById("machine_uptime").innerText);
+    const totalRuntime = parseTime(document.getElementById("total_runtime").innerText);
+    const plannedRuntime = parseTime(document.getElementById("planned_runtime").innerText);
+
+    localStorage.setItem(`${authKey}_live_shift_metrics`, JSON.stringify({
+        machineUptime, totalRuntime, plannedRuntime,
+        lastUpdated: new Date().toISOString(),
+        
+    }));
+}
+
+localStorage.setItem(`${authKey}_clockRunning`, "true");
+        localStorage.setItem(`${authKey}_shiftId`, shiftIds);
+
+   document.dispatchEvent(new Event("metricsReady"));
+{% endif %}
+
+// Shared metrics update listener
+document.addEventListener("shiftMetricsUpdated", () => {
+    const metrics = JSON.parse(localStorage.getItem(`${authKey}_live_shift_metrics`) || "{}");
+    if (!metrics) return;
+
+    const fmt = (s) => {
+        const h = String(Math.floor(s / 3600)).padStart(2, '0');
+        const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+        const sec = String(s % 60).padStart(2, '0');
+        return `${h}:${m}:${sec}`;
+    };
+
+    const round2 = (v) => Math.floor(v);
+
+    document.getElementById("machine_uptime").innerText = fmt(metrics.machineUptime);
+    document.getElementById("total_runtime").innerText = fmt(metrics.totalRuntime);
+    document.getElementById("planned_runtime").innerText = fmt(metrics.plannedRuntime);
+
+    const eff = metrics.plannedRuntime ? round2(metrics.machineUptime / metrics.plannedRuntime * 100) : 0;
+    const oee = metrics.plannedRuntime ? round2(metrics.totalRuntime / metrics.plannedRuntime * 100) : 0;
+
+    document.getElementById("machine_efficiency").innerText = `${eff}%`;
+    document.getElementById("OEE").innerText = `${oee}%`;
+});
+
+const extendBtn = document.getElementById("extend-shift-container");
+const extendText = document.getElementById("extend-shift-text");
+function checkExtendEligibility() {
+    if (!extendBtn) return;
+    const now = new Date();
+    extendBtn.style.display = now >= plannedEnd ? "block" : "none";
+    extendText.style.display = now >= plannedEnd ? "block" : "none";
+}
+checkExtendEligibility();
+setInterval(checkExtendEligibility, 1000);
+
+{% if not clock_running %}
+const lastCause = {{ cause | default('""') | tojson }};
+console.log("hello2")
+const parseTime = (t) => {
+    if (!t || t.length !== 8) return 0;
+    return t.split(":").map(Number).reduce((acc, val, i) => acc + val * [3600, 60, 1][i], 0);
+};
+
+const baseDowntime = parseTime(document.getElementById("non_machine_downtime")?.innerText || "00:00:00");
+const baseMachine = parseTime(document.getElementById("machine_downtime")?.innerText || "00:00:00");
+const basePlanned = parseTime(document.getElementById("planned_runtime")?.innerText || "00:00:00");
+
+let dtStartStr = localStorage.getItem(`${authKey}_downtimeStart`);
+if (!dtStartStr) {
+    dtStartStr = new Date().toISOString();
+    localStorage.setItem(`${authKey}_downtimeStart`, dtStartStr);
+}
+const dtStart = new Date(dtStartStr);
+
+localStorage.setItem(`${authKey}_clockRunning`, "false");
+
+localStorage.setItem(`${authKey}_live_shift_metrics`, JSON.stringify({
+    machineDowntime: baseMachine,
+    nonDowntime: baseDowntime,
+    plannedRuntime: basePlanned,
+    lastUpdated: new Date().toISOString(),
+   
+    reason: lastCause
+}));
+
+        document.dispatchEvent(new Event("metricsReady"));
+document.addEventListener("downtimeUpdated", () => {
+    const metrics = JSON.parse(localStorage.getItem(`${authKey}_live_shift_metrics`) || "{}");
+    console.log("⚠️ downtimeUpdated event triggered");
+    if (!metrics) return;
+
+    const fmt = (s) => {
+        const h = String(Math.floor(s / 3600)).padStart(2, '0');
+        const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+        const sec = String(s % 60).padStart(2, '0');
+        return `${h}:${m}:${sec}`;
+    };
+
+    document.getElementById("machine_downtime").innerText = fmt(metrics.machineDowntime || 0);
+    document.getElementById("non_machine_downtime").innerText = fmt(metrics.nonDowntime || 0);
+    document.getElementById("planned_runtime").innerText = fmt(metrics.plannedRuntime || 0);
+
+    const eff = metrics.plannedRuntime ? Math.floor(metrics.machineUptime / metrics.plannedRuntime * 100) : 0;
+    const oee = metrics.plannedRuntime ? Math.floor(metrics.totalRuntime / metrics.plannedRuntime * 100) : 0;
+
+    document.getElementById("machine_efficiency").innerText = `${eff}%`;
+    document.getElementById("OEE").innerText = `${oee}%`;
+});
+{% endif %}
+    </script>
+    {% endif %}
+
+
+    {% if break_start and break_end %}
+
+    <div id="break-warning" style="color: red; font-weight: bold; margin-top: 1rem;"></div>
+    <script>
+
+    const breakStart = new Date("{{ break_start }}Z");
+    const breakEnd = new Date("{{ break_end }}Z");
+         console.log(breakEnd)
+    const lastCause = {{ cause | tojson | safe }};
+    const clockRunning = {{ clock_running | tojson }};
+
+        function updateBreakWarnings() {
+        const now = new Date();
+
+        const warningDiv = document.getElementById("break-warning");
+        const secondsToBreakStart = Math.floor((breakStart - now) / 1000);
+        const secondsToBreakEnd = Math.floor((breakEnd - now) / 1000);
+        console.log("Break start:", breakStart);
+            console.log("Break end:", breakEnd)
+        console.log("seconds to break start:", secondsToBreakStart)
+        if (secondsToBreakStart <= 300 && secondsToBreakStart > 0) {
+            warningDiv.innerText = `Break starting in ${Math.floor(secondsToBreakStart / 60)} min ${secondsToBreakStart % 60} sec`;
+        } else if (secondsToBreakStart <= 0 && secondsToBreakEnd > 0) {
+            if (!clockRunning && lastCause === "Break") {
+                warningDiv.innerText = secondsToBreakEnd <= 300
+                    ? `Break ending in ${Math.floor(secondsToBreakEnd / 60)} min ${secondsToBreakEnd % 60} sec`
+                    : `You are currently on break.`;
+            } else {
+                warningDiv.innerText = `Break should have started. Stop cycle and click \"Break\" to log reason.`;
+            }
+        } else if (secondsToBreakEnd <= 0 && !clockRunning && lastCause === "Break") {
+            warningDiv.innerText = `Break is over. Start cycle.`;
+        } else {
+            warningDiv.innerText = "";
+        }
+    }
+
+    setInterval(updateBreakWarnings, 1000);
+    </script>
+    {% endif %}
+
+    {% if clock_running %}
+    <p class="clock-on" style="background: #d4edda; color: #155724;">Cycle is RUNNING</p>
+    <div role="group"><a href="/record_stop" role="button" class="pico-background-red-600 outline secondary">Record Stop</a></div>
+
+
+    {% else %}
+    <p class="clock-off" style="background: #f8d7da; color: #721c24;">Cycle is STOPPED</p>
+    <script>localStorage.removeItem(`${AUTH_ID}_live_shift_metrics`);</script>
+    <div role="group"><a href="/record_start" role="button" class="pico-background-green-600 outline secondary">Record Start</a></div>
+    {% endif %}
+</article>
+<script>
+    document.querySelectorAll('.tooltip-icon').forEach(icon => {
+        icon.addEventListener('click', function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.tooltip-icon').forEach(el => {
+                if (el !== icon) el.classList.remove('active');
+            });
+            icon.classList.toggle('active');
+        });
+    });
+
+    window.addEventListener('click', () => {
+        document.querySelectorAll('.tooltip-icon.active').forEach(el => {
+            el.classList.remove('active');
+        });
+    });
+</script>
+
+
+<script src="{{ url_for('static', filename='js/convert-utc-times.js') }}"></script>
+{% endblock %}
+

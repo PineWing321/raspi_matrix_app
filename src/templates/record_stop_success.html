@@ -1,0 +1,14 @@
+<!-- record_stop_success.html -->
+{% extends "base.html" %}
+{% block content %}
+<p>Shift successfully stopped. Redirecting...</p>
+<script>
+    if (typeof AUTH_ID !== "undefined") {
+        localStorage.setItem(`${AUTH_ID}_clockRunning`, "false");
+        localStorage.removeItem(`${AUTH_ID}_live_shift_metrics`);
+    }
+    setTimeout(() => {
+        window.location.href = "/index";
+    }, 500);
+</script>
+{% endblock %}

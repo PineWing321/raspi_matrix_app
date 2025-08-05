@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Select Cause(s)</h2>
+    <a href="/index">Back to Current Shift</a>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post">
+        <fieldset>
+            <input type="hidden" name="shift_id" value="{{ shift_id }}">
+
+            <label>
+                Reason:
+                <select name="reason" id="reason-select" required>
+                    {% for option in ["Machine Related", "Planned Stop", "Non-Machine Related", "Break", "unconfirmed"] %}
+                    <option value="{{ option }}" {% if log.reason == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                Cause:
+                <select name="cause" id="cause-select" required>
+                    {% for option in multiple_causes.split(",") +['other'] %}
+                    <option value="{{ option }}" {% if log.cause == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label id="comment-label">
+                Comments:
+                <input type="text" name="comment" id="comment-input" value="{{ log.comments or '' }}">
+            </label>
+        </fieldset>
+        <input type="submit" value="Submit" />
+    </form>
+</article>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.querySelector("form");
+    const causeSelect = document.getElementById("cause-select");
+    const reasonSelect = document.getElementById("reason-select");
+    const commentInput = document.getElementById("comment-input");
+
+    const causeLogic = {
+        "fence_fault": { requireComment: false },
+        "e_stop": { requireComment: false },
+        "missed_pick": { requireComment: false },
+        "missed_placement": { requireComment: false },
+        "quality_stop": { requireComment: true },
+        "collision": { requireComment: false },
+        "sensor_audit_flag": { requireComment: false },
+        "operator_stop": { requireComment: false },
+        "other": { requireComment: true }
+    };
+
+    function applyCauseLogic() {
+        const selectedCause = causeSelect.value;
+        const config = causeLogic[selectedCause] || { requireComment: false };
+        if (config.requireComment) {
+            commentInput.setAttribute("required", "required");
+        } else {
+            commentInput.removeAttribute("required");
+        }
+    }
+
+    causeSelect.addEventListener("change", applyCauseLogic);
+    applyCauseLogic(); // Initialize on load
+
+    form.addEventListener("submit", (e) => {
+        const selectedReason = reasonSelect.value.trim();
+        const selectedCause = causeSelect.value.trim();
+        const comment = commentInput.value.trim();
+        const requiresComment = causeLogic[selectedCause]?.requireComment ?? false;
+
+        if (!selectedReason || selectedReason === "unconfirmed") {
+            e.preventDefault();
+            alert("Please select a valid reason.");
+            return;
+        }
+
+        if (requiresComment && (!comment || comment.toLowerCase() === "unconfirmed")) {
+            e.preventDefault();
+            alert("A valid comment is required for this cause.");
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

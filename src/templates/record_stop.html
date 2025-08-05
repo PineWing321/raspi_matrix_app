@@ -1,0 +1,99 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Record Stop</h2>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post">
+        <fieldset>
+            <label>
+                Cycle Stop Time (Local)
+            </label>
+            <p style="margin: 5px 0; font-weight: bold;">{{ time_display }}</p>
+            <input type="hidden" name="stop_time" value="{{ time_val }}">
+            <input type="hidden" name="shift_id" value="{{ shift_id }}">
+
+            <label for="reason-select">Reason</label>
+            <select name="reason" id="reason-select" required>
+                <option selected disabled value="">Select Reason...</option>
+                <option>Machine Related</option>
+                <option>Planned Stop</option>
+                <option>Non-Machine Related</option>
+                <option>Break</option>
+                
+            </select>
+
+            <label>
+                Machine-Detected Cause:
+                <input type="text" value="{{ cause }}" readonly style="background-color: #f9f9f9; border: 1px solid #ccc; padding: 6px; width: 100%; margin-top: 4px;" />
+            </label>
+
+            <label for="comment-input" id="comment-label">
+                Comments:
+                <input type="text" name="comment" id="comment-input"
+                       {% if comment_flag %}required{% endif %}>
+            </label>
+        </fieldset>
+
+        <input type="submit" value="Submit" />
+    </form>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const causeLogic = {
+            "fence_fault": { reason: "Non-Machine Related" },
+            "e_stop": { reason: "Non-Machine Related" },
+            "missed_pick": { reason: "Machine Related" },
+            "missed_placement": { reason: "Machine Related" },
+            "quality_stop": { reason: "unconfirmed" },
+            "collision": { reason: "Machine Related" },
+            "sensor_audit_flag": { reason: "Machine Related" },
+            "operator_stop": { reason: "unconfirmed" },
+            "other": { reason: "unconfirmed" }
+        };
+
+        const selectedCause = "{{ cause }}".trim();
+        const config = causeLogic[selectedCause];
+        const reasonSelect = document.getElementById("reason-select");
+
+        if (config && config.reason && config.reason !== "unconfirmed") {
+            reasonSelect.value = config.reason;
+        }
+
+        // Prevent user from leaving page without submitting
+        let isSubmitted = false;
+
+        history.pushState(null, "", location.href);
+        history.pushState(null, "", location.href);
+
+        window.addEventListener("popstate", function () {
+            if (!isSubmitted) {
+                alert("You must submit the stop reason before leaving.");
+                history.pushState(null, "", location.href);
+            }
+        });
+
+        window.onbeforeunload = function () {
+            if (!isSubmitted) {
+                return "Stop reason must be submitted before leaving.";
+            }
+        };
+
+        document.querySelector("form").addEventListener("submit", function () {
+            isSubmitted = true;
+        });
+    });
+</script>
+{% endblock %}

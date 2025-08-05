@@ -1,0 +1,36 @@
+<!--extendshift.html-->
+{% extends "base.html"%}
+{% block title %}
+<h2>Extend Shift</h2>
+{% endblock %}
+
+{% block content %}
+<form method="POST">
+    <label for="planned_end">New Planned End:</label>
+    <input type="datetime-local" name="planned_end" required value="{{ end_for_input }}">
+    <button type="submit">Submit</button>
+
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</form>
+
+<a href="/index">Back</a>
+{% endblock %}
+
+<script>
+    // Get UTC value from backend
+    const rawEnd = "{{ end_for_input|replace(' ', 'T') }}Z"; // Add Z to force UTC interpretation
+    const utcDate = new Date(rawEnd);
+
+    // Convert to local ISO string and strip seconds/milliseconds
+    const localISO = utcDate.toISOString().slice(0,16); // Still in UTC
+    const localDate = new Date(localISO);
+
+    // Adjust to local and format for input
+    const tzOffset = localDate.getTimezoneOffset() * 60000;
+    const localAdjusted = new Date(localDate.getTime() - tzOffset).toISOString().slice(0,16);
+
+    // Set the input value
+    document.getElementById("planned_end_input").value = localAdjusted;
+</script>

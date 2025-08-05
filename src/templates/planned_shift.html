@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Plan Shift</h2>
+    <a href="/">Back to Overview</a>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article>
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    {% if planned_shift %}
+    <h3>Today's Planned Shift:</h3>
+    <ul>
+        <li>Start: {{ planned_shift[1] }}</li>
+        <li>End: {{ planned_shift[2] }}</li>
+        <li>Break 1: {{ planned_shift[3] }} to {{ planned_shift[4] }}</li>
+        <li>Lunch: {{ planned_shift[5] }} to {{ planned_shift[6] }}</li>
+        <li>Break 2: {{ planned_shift[7] }} to {{ planned_shift[8] }}</li>
+    </ul>
+    <p style="color: gray;">You have already planned today's shift.</p>
+    {% else %}
+    <form method="post" onsubmit="convertToUTC()">
+        <fieldset>
+           
+            <label for="target-cycle-time" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">
+                Target Cycle Time (seconds)
+            </label>
+            <input type="number"
+                   id="target-cycle-time"
+                   name="target_cycle_time"
+                   min="1"
+                   placeholder="e.g., 30"
+                   style="width: 100%; padding: 0.5rem; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+            <label>
+                Planned Start Time (Local)
+                <input type="datetime-local" id="display_start" required>
+            </label>
+            <label>
+                Planned End Time (Local)
+                <input type="datetime-local" id="display_end" required>
+            </label>
+            <label>
+                Break 1 Start
+                <input type="datetime-local" id="display_break1_start">
+            </label>
+            <label>
+                Break 1 End
+                <input type="datetime-local" id="display_break1_end">
+            </label>
+            <label>
+                Lunch Start
+                <input type="datetime-local" id="display_lunch_start">
+            </label>
+            <label>
+                Lunch End
+                <input type="datetime-local" id="display_lunch_end">
+            </label>
+            <label>
+                Break 2 Start
+                <input type="datetime-local" id="display_break2_start">
+            </label>
+            <label>
+                Break 2 End
+                <input type="datetime-local" id="display_break2_end">
+            </label>
+
+            <!-- Hidden UTC Submissions -->
+            <input type="hidden" name="planned_start" id="utc_start">
+            <input type="hidden" name="planned_end" id="utc_end">
+            <input type="hidden" name="break1_start" id="utc_break1_start">
+            <input type="hidden" name="break1_end" id="utc_break1_end">
+            <input type="hidden" name="lunch_start" id="utc_lunch_start">
+            <input type="hidden" name="lunch_end" id="utc_lunch_end">
+            <input type="hidden" name="break2_start" id="utc_break2_start">
+            <input type="hidden" name="break2_end" id="utc_break2_end">
+        </fieldset>
+              
+        <input type="submit" value="Plan Shift">
+    </form>
+
+    <script>
+        function convertToUTC() {
+            const getUTC = id => {
+                const val = document.getElementById(id).value;
+                return val ? new Date(val).toISOString() : "";
+            };
+
+            document.getElementById("utc_start").value = getUTC("display_start");
+            document.getElementById("utc_end").value = getUTC("display_end");
+            document.getElementById("utc_break1_start").value = getUTC("display_break1_start");
+            document.getElementById("utc_break1_end").value = getUTC("display_break1_end");
+            document.getElementById("utc_lunch_start").value = getUTC("display_lunch_start");
+            document.getElementById("utc_lunch_end").value = getUTC("display_lunch_end");
+            document.getElementById("utc_break2_start").value = getUTC("display_break2_start");
+            document.getElementById("utc_break2_end").value = getUTC("display_break2_end");
+        }
+    </script>
+    {% endif %}
+</article>
+{% endblock %}

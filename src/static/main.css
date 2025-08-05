@@ -1,0 +1,37 @@
+/* Header with nav bar */
+
+/* Sticky header bar */
+body > header {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    margin: 0;
+    padding: 0;
+    padding-block: 0;
+    background-color: var(--pico-card-background-color);
+}
+
+nav > ul > li {
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Nav bar links */
+nav > ul > li > a {
+    color: var(--pico-secondary);
+    text-decoration: none;
+}
+
+/* Nav bar hovered links */
+nav > ul > li > a:hover {
+    color: var(--pico-secondary-hover);
+}
+
+/* Hovered item in nav bar */
+nav > ul > li:has(>a) :hover {
+    background-color: var(--pico-secondary-hover-background);
+}
+
+a > img {
+    color: var(--pico-secondary) !important;
+}

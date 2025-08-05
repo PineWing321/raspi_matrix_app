@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Mock Machine Bit{% endblock %}
+
+{% block content %}
+<div style="text-align: center; margin-top: 40px;">
+    <h2>Machine Bit: <span style="color: {{ 'green' if bit_value else 'red' }}">{{ 'ON' if bit_value else 'OFF' }}</span></h2>
+
+    <form method="POST" action="/change_bit">
+        <input type="hidden" name="bit_value" value="1">
+        <button type="submit" style="background-color: green; color: white; padding: 10px 20px; margin: 10px;">
+            Start (Set Bit = 1)
+        </button>
+    </form>
+
+    <form method="POST" action="/change_bit">
+        <input type="hidden" name="bit_value" value="0">
+        <button type="submit" style="background-color: red; color: white; padding: 10px 20px; margin: 10px;">
+            Stop (Set Bit = 0)
+        </button>
+    </form>
+</div>
+{% endblock %}

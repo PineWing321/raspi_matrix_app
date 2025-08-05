@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link rel="stylesheet" href="/static/pico.min.css">
+    <link rel="stylesheet" href="/static/pico.colors.min.css">
+    <link rel="stylesheet" href="/static/main.css">
+    <title>Matrix Data Collection</title>
+
+
+
+
+
+
+    {% block head %}{% endblock %}
+</head>
+
+<body class="{% if clock_running %}clock-on{% else %}clock-off{% endif %}">
+    <header>
+        {% if not hide_nav %}
+        <nav class="container">
+            <ul>
+                <li><a href="/"><img src="/static/icons/svg/filled/home.svg" alt="Go Home" /></a></li>
+                <li>
+                    {% block title %}
+                    <h2>Matrix Data Collection</h2>
+                    {% endblock %}
+                </li>
+            </ul>
+            <ul>
+                <li><a href="/details">Details</a></li>
+                <li><a href="/history">History</a></li>
+                <li><a href="/shift_manager">Shifts</a></li>
+                <li><a href="/change_bit">state</a></li>
+            </ul>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+        
+         
+         function startStarvedBlockedTick(KEY_PREFIX) {
+            setInterval(() => {
+            const isStarvedActive = localStorage.getItem(`${KEY_PREFIX}_init_starved`) === "true";
+            const isBlockedActive = localStorage.getItem(`${KEY_PREFIX}_init_blocked`) === "true";
+
+            if (isStarvedActive) {
+            let starved = parseInt(localStorage.getItem(`${KEY_PREFIX}_base_starved`) || "0");
+            starved += 1;
+            localStorage.setItem(`${KEY_PREFIX}_base_starved`, starved);
+            console.log("starved",starved)
+            if (typeof updateStarvedDisplay === "function") {
+                updateStarvedDisplay(starved);
+            }
+        }
+
+        if (isBlockedActive) {
+            let blocked = parseInt(localStorage.getItem(`${KEY_PREFIX}_base_blocked`) || "0");
+            blocked += 1;
+            localStorage.setItem(`${KEY_PREFIX}_base_blocked`, blocked);
+
+            if (typeof updateBlockedDisplay === "function") {
+                updateBlockedDisplay(blocked);
+            }
+        }
+    }, 1000);
+}
+
+         
+         
+        function startTickLoop(KEY_PREFIX) {
+            setInterval(() => {
+                const clockRunning = localStorage.getItem("clock_running") === "true";
+                const lastCause = localStorage.getItem("lastStopCause");
+
+                let planned = parseInt(localStorage.getItem(`${KEY_PREFIX}_planned_runtime`) || "0");
+                let runtime = parseInt(localStorage.getItem(`${KEY_PREFIX}_base_runtime`) || "0");
+                let uptime = parseInt(localStorage.getItem(`${KEY_PREFIX}_base_machine_uptime`) || "0");
+                let nonDown = parseInt(localStorage.getItem(`${KEY_PREFIX}_base_non_downtime`) || "0");
+                let machineDown = parseInt(localStorage.getItem(`${KEY_PREFIX}_base_machine_downtime`) || "0");
+
+                console.log("→ clockRunning:", clockRunning);
+                console.log("→ lastCause:", lastCause);
+                console.log("→ planned:", planned, "runtime:", runtime, "uptime:", uptime);
+
+                if (clockRunning) {
+                    runtime += 1;
+                    uptime += 1;
+                    planned += 1;
+
+                    localStorage.setItem(`${KEY_PREFIX}_base_runtime`, runtime);
+                    localStorage.setItem(`${KEY_PREFIX}_base_machine_uptime`, uptime);
+                    localStorage.setItem(`${KEY_PREFIX}_planned_runtime`, planned);
+
+                    if (typeof updateUptimeDisplay === "function") {
+                        updateUptimeDisplay(runtime, uptime, planned);
+                        updatePartDisplay(planned)
+                    }
+
+                } else {
+                    if (!lastCause || lastCause === "Non-Machine Related") {
+                        console.log("am i being hit");
+                        nonDown += 1;
+                        planned += 1;
+                        uptime +=1;
+                        localStorage.setItem(`${KEY_PREFIX}_base_non_downtime`, nonDown);
+                        localStorage.setItem(`${KEY_PREFIX}_planned_runtime`, planned);
+                        localStorage.setItem(`${KEY_PREFIX}_base_machine_uptime`, uptime)
+                    } else if (lastCause === "Machine Related") {
+                        machineDown += 1;
+                        planned += 1;
+                        
+                        localStorage.setItem(`${KEY_PREFIX}_base_machine_downtime`, machineDown);
+                        localStorage.setItem(`${KEY_PREFIX}_planned_runtime`, planned);
+                    }
+
+                    if (typeof updateDowntimeDisplay === "function") {
+                        updateDowntimeDisplay(nonDown, machineDown, planned,uptime);
+                        updatePartDisplay(planned)
+                    }
+                }
+            }, 1000);
+        }
+
+
+
+        
+    window.addEventListener("load", function () {
+        const AUTH_ID = localStorage.getItem("auth_id");
+        const SHIFT_ID = localStorage.getItem("shift_id");
+        if (!AUTH_ID || !SHIFT_ID) return setTimeout(() => window.dispatchEvent(new Event("load")), 50);
+
+        const KEY_PREFIX = `${AUTH_ID}_${SHIFT_ID}`;
+        window.KEY_PREFIX = KEY_PREFIX;
+
+        // Initialize Starved/Blocked Logic
+        const STARVED_KEY = `${KEY_PREFIX}_init_starved`;
+        const BLOCKED_KEY = `${KEY_PREFIX}_init_blocked`;
+        
+        const isStarved = {{ is_starved | default(false) | tojson }};
+const isBlocked = {{ is_blocked | default(false) | tojson }};
+const starvedSeconds = {{ starved_seconds | default(0) | tojson }};
+const blockedSeconds = {{ blocked_seconds | default(0) | tojson }};
+console.log("starved_seconds", starvedSeconds)
+console.log("blocked_seconds", blockedSeconds) 
+            // STARVED Logic
+    if (isStarved && localStorage.getItem(STARVED_KEY) !== "true") {
+    // First-time initialization when starved becomes active
+    localStorage.setItem(STARVED_KEY, "true");
+    localStorage.setItem(`${KEY_PREFIX}_base_starved`, starvedSeconds);
+    localStorage.setItem(`${KEY_PREFIX}_starvedStart`, new Date().toISOString());
+    } else if (!isStarved && localStorage.getItem(STARVED_KEY) === "true") {
+    // Uninitialize when starved turns off
+    localStorage.removeItem(STARVED_KEY);
+    localStorage.removeItem(`${KEY_PREFIX}_base_starved`);
+    localStorage.removeItem(`${KEY_PREFIX}_starvedStart`);
+    }
+
+// BLOCKED Logic
+    if (isBlocked && localStorage.getItem(BLOCKED_KEY) !== "true") {
+    localStorage.setItem(BLOCKED_KEY, "true");
+    localStorage.setItem(`${KEY_PREFIX}_base_blocked`, blockedSeconds);
+    localStorage.setItem(`${KEY_PREFIX}_blockedStart`, new Date().toISOString());
+    } else if (!isBlocked && localStorage.getItem(BLOCKED_KEY) === "true") {
+    localStorage.removeItem(BLOCKED_KEY);
+    localStorage.removeItem(`${KEY_PREFIX}_base_blocked`);
+    localStorage.removeItem(`${KEY_PREFIX}_blockedStart`);
+    }
+
+
+        // Now start ticking when other flags are ready
+        const initClockKey = `${KEY_PREFIX}_init_clock`;
+        const initDowntimeKey = `${KEY_PREFIX}_init_downtime`;
+
+        const isInitialized =
+            localStorage.getItem(initClockKey) === "true" ||
+            localStorage.getItem(initDowntimeKey) === "true";
+
+        if (!isInitialized) {
+            console.warn("Waiting for base value initialization...");
+            return setTimeout(() => window.dispatchEvent(new Event("load")), 50);
+        }
+
+        console.log("✅ Tick loop started with KEY_PREFIX:", KEY_PREFIX);
+        startTickLoop(KEY_PREFIX);
+        startStarvedBlockedTick(KEY_PREFIX)
+    });
+</script>
+
+    </script>
+    <script>
+    // Ensure the flag is initialized
+    if (window.isReactActive === undefined) {
+        window.isReactActive = false;
+    }
+
+    async function pollNextTransition() {
+        // 🔒 Only poll if React is not active
+        if (window.isReactActive) return;
+
+        try {
+            const response = await fetch('/api/next_transition');
+            const data = await response.json();
+            const { next_path, message } = data;
+
+            if (next_path) {
+                if (message) {
+                    alert(message); // Or show toast
+                }
+
+                await fetch('/api/acknowledge_transition', {
+                    method: 'POST'
+                });
+
+                window.location.replace(next_path);
+            } else {
+                console.log("No transition yet.");
+            }
+        } catch (error) {
+            console.error('Polling error:', error);
+        }
+    }
+
+    // Start polling every second — but only if React is not active
+    setInterval(pollNextTransition, 1000);
+</script>
+
+    {% if block_back_button %}
+    <div style="text-align: center; margin-top: 1rem;">
+        <h4>Submit this form to leave page</h4>
+    </div>
+    {% endif %}
+</body>
+
+</html>
+
+<style>
+    body.clock-on {
+        background-color: #d4edda !important;
+        min-height: 100vh;
+    }
+
+    body.clock-off {
+        background-color: #f8d7da !important;
+        min-height: 100vh;
+    }
+</style>

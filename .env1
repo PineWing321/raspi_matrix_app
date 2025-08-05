@@ -1,0 +1,6 @@
+DB_HOST=dpg-d13j6tvfte5s738qil9g-a.ohio-postgres.render.com
+DB_NAME=matrixappv1
+DB_USER=matrixappv1_user
+DB_PASSWORD=dmWnY8wzBlFU401IrDe6ghTpUbIIWDc9
+DB_PORT=5432
+SKIP_DB=false

@@ -1,0 +1,111 @@
+{%extends "base.html" %}
+{% block title %}
+<hgroup>
+    <h2>Select Cause(s)</h2>
+    <a href="/index">Back to Current Shift</a>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post">
+        <fieldset>
+            <label for="cause-select">Cause:</label>
+            <select name="cause" id="cause-select" required>
+                <option value="" disabled selected>Select a cause</option>
+                {% for option in causes + ['other'] %}
+                <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="reason-select" id="reason-label">Reason:</label>
+            <select name="reason" id="reason-select" required>
+                <option value="" disabled selected>Select a reason</option>
+                <option value="Machine Related">Machine Related</option>
+                <option value="Planned Stop">Planned Stop</option>
+                <option value="Non-Machine Related">Non-Machine Related</option>
+                <option value="Break">Break</option>
+            </select>
+
+            <label for="comment-input" id="comment-label">
+                Comment (if required):
+                <input type="text" name="comment" id="comment-input" value="">
+            </label>
+
+            <!-- Hidden shift_id field -->
+            <input type="hidden" name="shift_id" value="{{ shift_id }}">
+        </fieldset>
+
+        <input type="submit" value="Submit Selection">
+    </form>
+</article>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const causeSelect = document.getElementById("cause-select");
+    const reasonSelect = document.getElementById("reason-select");
+    const commentInput = document.getElementById("comment-input");
+    const form = document.querySelector("form");
+
+    const causeLogic = {
+        "fence_fault": { reason: "Non-Machine Related", requireComment: false },
+        "e_stop": { reason: "Non-Machine Related", requireComment: false },
+        "missed_pick": { reason: "Machine Related", requireComment: false },
+        "missed_placement": { reason: "Machine Related", requireComment: false },
+        "quality_stop": { reason: "", requireComment: true },
+        "collision": { reason: "Machine Related", requireComment: false },
+        "sensor_audit_flag": { reason: "Machine Related", requireComment: false },
+        "operator_stop": { reason: "", requireComment: false },
+        "other": { reason: "", requireComment: true }
+    };
+
+    function applyCauseLogic() {
+        const selectedCause = causeSelect.value;
+        const config = causeLogic[selectedCause];
+
+        if (!config) return;
+
+        // Set default reason if known
+        reasonSelect.value = config.reason || "";
+
+        // Handle comment requirement
+        if (config.requireComment) {
+            commentInput.setAttribute("required", "required");
+        } else {
+            commentInput.removeAttribute("required");
+        }
+    }
+
+    causeSelect.addEventListener("change", applyCauseLogic);
+
+    form.addEventListener("submit", (e) => {
+        const selectedCause = causeSelect.value.trim();
+        const config = causeLogic[selectedCause];
+        const selectedReason = reasonSelect.value.trim();
+        const comment = commentInput.value.trim();
+
+        if (!selectedCause || !config) {
+            e.preventDefault();
+            alert("Please select a valid cause.");
+            return;
+        }
+
+        if (!selectedReason || selectedReason === "unconfirmed") {
+            e.preventDefault();
+            alert("Please select a valid reason.");
+            return;
+        }
+
+        if (config.requireComment && (!comment || comment.toLowerCase() === "unconfirmed")) {
+            e.preventDefault();
+            alert("A valid comment is required for this cause.");
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

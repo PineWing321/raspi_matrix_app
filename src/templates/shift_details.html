@@ -1,0 +1,101 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Shift Logs</h2>
+    {% if go_to_home %}
+    <a href="/">Back to home</a>
+    {% else %}
+    <a href="/index">Back to Current Shift</a>
+    {% endif %}
+</hgroup>
+{% endblock %}
+
+{% block content %}
+{% if shift_logs%}
+<article style="max-width: 1000px; margin: 0 auto;">
+
+    <h3 style="margin-bottom: 1rem;">Current Shift Detail</h3>
+
+    <table style="width: 100%; border-collapse: collapse; table-layout: auto;">
+        <thead>
+            <tr>
+                <th style="padding: 10px; font-weight: bold; text-align: center;">Start Time</th>
+                <th style="padding: 10px; font-weight: bold; text-align: center;">Stop Time</th>
+                <th style="padding: 10px; font-weight: bold; text-align: left;">Reason</th>
+                <th style="padding: 10px; font-weight: bold; text-align: left;">Cause</th>
+                <th style="padding: 10px; font-weight: bold; text-align: center;">Comments </th>
+           
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in shift_logs %}
+            <tr>
+                <td style="padding: 8px; text-align: center;">
+                    {% if row["start_time"] %}
+                    <span class="utc-time">{{ row["start_time"] }}</span>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    {% if row["stop_time"] %}
+                    <span class="utc-time">{{ row["stop_time"] }}</span>
+                    {% else %}
+                    In Progress
+                    {% endif %}
+                </td>
+                <td style="padding:8px; text-align: left;">{{ row["reason"] or "-"}}</td>
+                <td style="padding: 8px; text-align: left;">{{ row["cause"] or "-" }}</td>
+                <td style="padding: 8px; text-align: left;">{{ row["comments"] or "-" }}</td>
+
+
+
+                <td style="padding: 8px; text-align: center;">
+                    <form method="post" action="/details">
+                        <input type="hidden" name="shift_id" value="{{ row['id'] }}" />
+                        <button type="submit">Edit</button>
+                    </form>
+                </td>
+            </tr>
+
+            {% endfor %}
+        </tbody>
+    </table>
+
+</article>
+{% else %}
+<p style="text-align: center">No Current Shift</p>
+<div style="text-align: center; margin-top: 1rem;">
+    <a href="/" style="
+        display: inline-block;
+        background-color: #005f73;
+        color: white;
+        padding: 10px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+    ">
+        ← Back to Home
+    </a>
+</div>
+
+{% endif %}
+<!-- JS: Inline conversion of UTC timestamps to local time -->
+<script>
+    window.addEventListener("load", () => {
+        const utcElements = document.querySelectorAll(".utc-time");
+        utcElements.forEach(el => {
+            const utcString = el.innerText;
+            if (!utcString) return;
+            const date = new Date(utcString + 'Z');  // Appends 'Z' to force UTC parsing
+            const localString = date.toLocaleString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            el.innerText = localString;
+        });
+    });
+</script>
+{% endblock %}

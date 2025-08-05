@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Record Start</h2>
+    <a href="/">Back to Overview</a>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05); font-family: 'Segoe UI', sans-serif;">
+
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post">
+        <fieldset>
+            <label>
+                Cycle Start Time (Local)
+                <input type="datetime-local" name="start_time" required value="{{ time_val }}">
+            </label>
+
+            <label>
+                Operator Notes (Optional)
+                <textarea name="notes" placeholder="Optional comments..." aria-label="Operator Notes"></textarea>
+            </label>
+        </fieldset>
+
+        <input type="submit" value="Submit" />
+    </form>
+</article>
+{% endblock %}

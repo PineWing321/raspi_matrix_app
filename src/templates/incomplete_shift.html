@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}
+<hgroup>
+    <h2>Complete Missing Shift Data</h2>
+</hgroup>
+{% endblock %}
+
+{% block content %}
+<article style="max-width: 500px; margin: 2rem auto; padding: 1.5rem; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+
+    <form method="post">
+        <input type="hidden" name="shift_id" value="{{ shift_id }}">
+
+        {% if reason_flag %}
+        <label for="reason">Reason (required):</label>
+        <select name="reason" id="reason" required>
+            <option selected disabled value="">Select Reason...</option>
+            <option>Machine Related</option>
+            <option>Planned Stop</option>
+            <option>Non-Machine Related</option>
+            <option>Break</option>
+        </select>
+        {% endif %}
+
+        {% if comment_flag %}
+        <label for="comment">Comment (required):</label>
+        <input type="text" name="comment" id="comment" required>
+        {% else %}
+        <label for="comment">Comment (optional):</label>
+        <input type="text" name="comment" id="comment">
+        {% endif %}
+         
+        <input type="submit" value="Submit" style="margin-top: 1rem;">
+    </form>
+
+</article>
+{% endblock %}

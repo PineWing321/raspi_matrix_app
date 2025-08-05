@@ -1,0 +1,11 @@
+<!--error.html-->
+{% extends "base.html" %}
+
+{% block title %}
+<h2>Error</h2>
+{% endblock %}
+
+{% block content %}
+<p style="color: red; font-weight: bold;">{{ message or "An unexpected error occurred." }}</p>
+<a href="/index">Go Back Home</a>
+{% endblock %}

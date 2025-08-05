@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}
+<h2>Unconfirmed Shift Logs</h2>
+{% endblock title %}
+
+{% block content %}
+<article>
+    <p>Please confirm which log you want to edit or finalize:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Start Time</th>
+                <th>Stop Time</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in shift_rows %}
+            <tr>
+                <td>{{ row.start_time | datetimeformat }}</td>
+                <td>{{ row.stop_time | datetimeformat if row.stop_time else " " }}</td>
+                <td>
+                    <form method="POST">
+                        <input type="hidden" name="shift_id" value="{{ row.id }}">
+                        <button type="submit">Select</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</article>
+{% endblock content %}

@@ -1,0 +1,40 @@
+﻿{% extends "base.html" %}
+
+{% block title %}
+<h2 style="text-align: center;">Shift History</h2>
+{% endblock %}
+
+{% block content %}
+<section class="container" style="max-width: 600px; margin: 2rem auto;">
+    <form method="POST" action="/history" style="display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+        <label for="date" style="font-weight: bold; font-size: 1.1rem;">View shifts for a single day</label>
+        <input type="date" id="date" name="date" required style="padding: 0.5rem 1rem; font-size: 1rem;">
+        <button type="submit" class="contrast" style="padding: 0.6rem 1.4rem; font-size: 1rem;">View Shifts</button>
+    </form>
+
+</section>
+<section class="container" style="max-width: 600px; margin:2rem auto;">
+    <form method="POST" action="/shift_range_summary"
+          style="display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+
+        <label style="font-weight: bold; font-size: 1.1rem;">View range of shifts</label>
+
+        <div style="display: flex; gap: 1rem;">
+            <div>
+                <label for="start_date">Start:</label>
+                <input type="date" id="start_date" name="start_date" required
+                       style="padding: 0.5rem 1rem; font-size: 1rem;">
+            </div>
+            <div>
+                <label for="end_date">End:</label>
+                <input type="date" id="end_date" name="end_date" required
+                       style="padding: 0.5rem 1rem; font-size: 1rem;">
+            </div>
+        </div>
+
+        <button type="submit" class="contrast" style="padding: 0.6rem 1.4rem; font-size: 1rem;">
+            View Shifts
+        </button>
+    </form>
+</section>
+{% endblock %}
