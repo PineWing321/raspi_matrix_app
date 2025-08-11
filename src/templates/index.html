@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}
 
@@ -643,7 +643,7 @@ setInterval(updateBreakWarnings, 1000);
         const el1 = document.getElementById("non_machine_downtime");
         const el2 = document.getElementById("machine_downtime");
         const plannedEl = document.getElementById("planned_runtime");
-        const machineUptimeEl = document.getElementById("machine_uptime");
+        const machineUptimeEl = document.getElementById("machine_uptime")
         const totalRuntimeEl = document.getElementById("total_runtime");
 
         if (el1) el1.innerText = formatTime(nonMachine);
@@ -748,7 +748,9 @@ setInterval(updateBreakWarnings, 1000);
         }, 100);
         {% endif %}
     });
+    
 </script>
+
 <script>
    const plannedStart3 = new Date("{{ planned_shift['planned_start'].replace(' ', 'T') }}Z");
 const plannedEnd3 = new Date("{{ planned_shift['planned_end'].replace(' ', 'T') }}Z");
