@@ -1,0 +1,240 @@
+TROUBLESHOOTING & DOCUMENTATION ROUTING GUIDE
+Purpose: Use this when something breaks. Find the category, match the symptom, follow the steps.
+For deeper technical reference, see linked docs in WHERE TO LOOK.
+
+1. PLC & STATE MACHINE ISSUES
+SYMPTOM: Live shift screen frozen — timers not updating
+LIKELY CAUSE: STATE_LOGIC.app_state thread crashed or PLC polling stopped
+WHERE TO LOOK:
+
+src/services/STATE_LOGIC.py → confirm loop is running
+
+STATE_MANAGING.md → thread behavior reference
+NEXT STEPS:
+
+Check backend logs for uncaught exceptions.
+
+Restart backend; confirm polling resumes.
+
+Wrap PLC read calls with try/except to avoid future thread crashes.
+
+SYMPTOM: Running/Stopped state flips rapidly (chatter)
+LIKELY CAUSE: PLC bit scan speed faster/slower than app poll rate, no debounce logic
+WHERE TO LOOK:
+
+src/plc.py → polling cadence
+
+STATE_LOGIC.py → transition logic
+NEXT STEPS:
+
+Compare PLC scan time vs. app_state loop rate.
+
+Add debounce/tolerance before logging state change.
+
+SYMPTOM: Stops recorded with wrong cause
+LIKELY CAUSE: Event Bit Array (EBA) snapshot timing wrong
+WHERE TO LOOK:
+
+STATE_LOGIC.py → edge detection logic
+
+ROUTE_MANAGER.py → cause assignment flow
+NEXT STEPS:
+
+Verify EBA is captured only on Running→Stopped transition.
+
+Add debug print to confirm captured bits match PLC state at transition.
+
+SYMPTOM: Starved/Blocked durations incorrect
+LIKELY CAUSE: Timers not paused/resumed correctly during state swaps
+WHERE TO LOOK:
+
+STATE_LOGIC.py → starved/blocked tracking
+
+analytics.py → duration calculations
+NEXT STEPS:
+
+Review conditions that increment starved/blocked counters.
+
+Ensure increments occur only while Running and signal is active.
+
+2. TIME & TIMEZONE BUGS
+SYMPTOM: History missing night shifts
+LIKELY CAUSE: Anchored window rule not applied correctly for cross-midnight ranges
+WHERE TO LOOK:
+
+/api/analytics_by_date in src/routes/api.py
+
+API.md → anchored rule examples
+NEXT STEPS:
+
+Reproduce with known cross-midnight shift.
+
+Adjust filter to include only shifts fully within anchored window.
+
+SYMPTOM: Data off by 1 hour
+LIKELY CAUSE: DST or server time zone leaking into logic
+WHERE TO LOOK:
+
+api.py → datetime conversion code
+
+Architecture.md → Time Rules
+NEXT STEPS:
+
+Confirm DB stores UTC.
+
+Ensure all API responses convert to America/Chicago before returning.
+
+SYMPTOM: Last day in range excluded
+LIKELY CAUSE: End date treated as exclusive instead of inclusive
+WHERE TO LOOK:
+
+api.py → date range loop
+NEXT STEPS:
+
+Add +1 day to inclusive ranges.
+
+Re-test with single-day range.
+
+3. DATABASE PROBLEMS
+SYMPTOM: “Database is busy” or locked
+LIKELY CAUSE: Long-running write colliding with read
+WHERE TO LOOK:
+
+src/db.py → connection handling
+
+DATABASE.md → concurrency notes
+NEXT STEPS:
+
+Use check_same_thread=False for SQLite if needed.
+
+Wrap writes in short transactions.
+
+SYMPTOM: Duplicate shift IDs in history
+LIKELY CAUSE: Crash during logging or retry logic re-inserting
+WHERE TO LOOK:
+
+db.py → insert functions
+
+ROUTE_MANAGER.py → log creation
+NEXT STEPS:
+
+Add UNIQUE constraints in schema.
+
+Implement upsert or deduplication logic.
+
+SYMPTOM: Slow history queries
+LIKELY CAUSE: Missing index on timestamp/auth_id
+WHERE TO LOOK:
+
+DATABASE.md → index list
+NEXT STEPS:
+
+Add composite index (auth_id, timestamp).
+
+VACUUM and ANALYZE DB.
+
+4. ANALYTICS DISCREPANCIES
+SYMPTOM: OEE > 100% or negative
+LIKELY CAUSE: Divide-by-zero or wrong units (seconds vs. minutes)
+WHERE TO LOOK:
+
+src/services/analytics.py → formula logic
+NEXT STEPS:
+
+Add zero-checks before division.
+
+Standardize units across inputs.
+
+SYMPTOM: Live UI numbers don’t match final DB numbers
+LIKELY CAUSE: UI ticking uses stale/incorrect start values
+WHERE TO LOOK:
+
+analytics.py → calculation functions
+
+templates/base.html → ticking loop init
+NEXT STEPS:
+
+Pass fresh DB values when rendering template.
+
+Stop ticking when clock_running is false.
+
+5. API FAILURES
+SYMPTOM: React fetch returns 400/500
+LIKELY CAUSE: Missing params or timezone parse error
+WHERE TO LOOK:
+
+src/routes/api.py → request.args parsing
+NEXT STEPS:
+
+Confirm required query params present.
+
+Add validation and clear error messages.
+
+SYMPTOM: CORS or 401 errors
+LIKELY CAUSE: API origin mismatch or missing session
+WHERE TO LOOK:
+
+app.py → CORS setup
+NEXT STEPS:
+
+Configure allowed origins for React dev/prod URLs.
+
+Ensure session is set before API call.
+
+6. FRONT END (REACT) BUGS
+SYMPTOM: History graphs empty
+LIKELY CAUSE: API response shape doesn’t match chart keys
+WHERE TO LOOK:
+
+Shift_manager_front_end/src/pages/history/*
+
+API.md → expected keys
+NEXT STEPS:
+
+Log API response in console.
+
+Adjust mapping to match current keys.
+
+SYMPTOM: Plan/Edit not saving
+LIKELY CAUSE: Payload shape mismatch or wrong endpoint
+WHERE TO LOOK:
+
+PlanShift.jsx, EditShift.jsx → API calls
+
+plan.py → backend save logic
+NEXT STEPS:
+
+Compare payload to backend expectations.
+
+Add request logging on backend to debug.
+
+7. TEMPLATE TIMING ISSUES
+SYMPTOM: Timers tick when clock is stopped
+LIKELY CAUSE: No check for clock_running in base.html loop
+WHERE TO LOOK:
+
+src/templates/base.html
+NEXT STEPS:
+
+Add guard: only increment if clock_running is true.
+
+SYMPTOM: Wrong numbers on page load
+LIKELY CAUSE: Tick counters not seeded from DB values
+WHERE TO LOOK:
+
+index.html → initial JS variables
+NEXT STEPS:
+
+Pass DB values into template context.
+
+Initialize JS counters with these values.
+
+8. ROUTE MANAGER LOOPS
+SYMPTOM: App stuck bouncing between pages
+LIKELY CAUSE: route_manager re-triggering on unchanged state
+WHERE TO LOOK:
+
+ROUTE_MANAGER.py → action triggering
+NEXT STEPS:
+
+Add memo of last action taken; skip if same.

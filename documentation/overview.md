@@ -63,7 +63,6 @@ Simplicity over overengineering: Where possible, logic is expressed clearly and 
 
 Scalability-ready: Modular backend supports migration to PostgreSQL, WebSockets, and distributed deployment.
 
-Let me know if you want the Architecture.md next or want this converted into a doc file.
 
 
 
@@ -71,5 +70,3 @@ Let me know if you want the Architecture.md next or want this converted into a d
 
 
 
-
-Ask ChatGPT
