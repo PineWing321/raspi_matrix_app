@@ -1,10 +1,11 @@
-﻿#plan.py
+
+#plan.py
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 from datetime import datetime, timedelta
 
 from src.services.time_utils import parse_time, time_to_str
 from src.services.validation import validate_shift_times, validate_shift
-from src.db import insert_planned_shift, get_latest_planned_shift, get_planned_shift_id, is_clock_running,get_latest_stop_cause, get_active_shift, get_planned_shift_by_id, get_target_cycle_time, get_expected_parts, update_expected_parts, get_latest_shift_row_id, update_total_parts, update_total_rejects, get_total_parts_for_shift, get_total_rejected_parts, get_current_state, get_all_planned_shifts, create_shift, update_shift, delete_shift, insert_saved_shift_template, get_all_saved_shifts, check_null_stops, get_planned_id,  get_end_shift_function, get_unconfirmed_comments, get_unconfirmed_reasons, grab_first_parts, grab_first_rejects, get_total_parts, get_total_rejects, get_status_starved, get_status_block
+from src.db import insert_planned_shift, get_latest_planned_shift, get_planned_shift_id, is_clock_running,get_latest_stop_cause, get_active_shift, get_planned_shift_by_id, get_target_cycle_time, get_expected_parts, update_expected_parts, get_latest_shift_row_id, update_total_parts, update_total_rejects, get_total_parts_for_shift, get_total_rejected_parts, get_current_state, get_all_planned_shifts, create_shift, update_shift, delete_shift, insert_saved_shift_template, get_all_saved_shifts, check_null_stops, get_planned_id,  get_end_shift_function, get_unconfirmed_comments, get_unconfirmed_reasons, grab_first_parts, grab_first_rejects, get_total_parts, get_total_rejects, get_status_starved, get_status_block, get_shift_logs_by_planned_id
 from src.services.analytics import calculate_uptime_downtime, get_starved_time, get_blocked_time
 from src.globals import grab_total_parts, grab_total_rejects
 bp = Blueprint("plan", __name__)
@@ -21,6 +22,7 @@ def api_get_planned_shifts():
 def api_create_shift():
     data = request.get_json()
     is_valid, error = validate_shift(data)
+    print("am i being hit")
     if not is_valid:
         return jsonify({"error": error}), 400
     create_shift(data)
@@ -214,17 +216,16 @@ def index():
         return redirect("/login")
 
     #probs not good 
+    is_edited = False
+    is_edited = request.args.get("edited")
     
-
-    cycle_time = session.get("cycle_time")
-    if not cycle_time:
-        cycle_time = get_target_cycle_time(auth_id, planned_shift_id)
-        if not cycle_time:
-            return redirect("/login", error="Failed to grab cycle time. Try again later.")
-        session["cycle_time"] = cycle_time  # Cache it
+    
+    
+    cycle_time = get_target_cycle_time(auth_id, planned_shift_id)
+       
     cycle_time = float(cycle_time)  # ✅ ensure it's a number
     # Try to fetch planned shift
-    print(cycle_time)
+    print("what is my cycle_time", cycle_time)
     planned_shift = get_planned_shift_by_id(auth_id, planned_shift_id)
     if not planned_shift:
         session.pop("planned_id", None)
@@ -252,7 +253,9 @@ def index():
     else: 
         clock_running = False
 
-
+    if is_edited and shift_analytics:
+        shift_analytics = get_edited_analytics(shift_analytics,planned_shift_id) 
+        
     # checking for the editting if user leaves the stop screen before they should
     unconfirmed_comments = get_unconfirmed_comments(planned_shift_id)
     unconfirmed_reasons = get_unconfirmed_reasons(planned_shift_id)
@@ -389,6 +392,7 @@ def index():
         starved_seconds=starved_time,
         blocked_seconds = blocked_time,
         cycle_time = cycle_time,
+        is_edited = is_edited,
     )
 
 
@@ -468,3 +472,88 @@ def safe_time_string(value):
     if len(parts) != 3 or not all(part.isdigit() for part in parts):
         return "00:00:00"
     return ":".join(part.zfill(2) for part in parts)
+def hms_to_seconds(time_str):
+    try:
+        h, m, s = map(int, time_str.strip().split(":"))
+        return h * 3600 + m * 60 + s
+    except Exception as e:
+        print(f"[!] Failed to parse time '{time_str}': {e}")
+        return 0
+def seconds_to_hms(seconds):
+    h = seconds // 3600
+    m = (seconds % 3600) // 60
+    s = seconds % 60
+    return f"{h}:{m:02}:{s:02}"
+    
+    
+def get_edited_analytics(analytics: dict, shift_id: int) -> dict:
+    auth_id = 1
+    logs = get_shift_logs_by_planned_id(auth_id, shift_id)
+    if not logs:
+        print("📭 No logs found. Returning original analytics.")
+        return analytics
+
+    now = datetime.utcnow()
+    last_log = logs[-1]
+
+    # Extract and print original analytics
+    total_runtime = hms_to_seconds(analytics.get("total_runtime", "0:00:00"))
+    machine_uptime = hms_to_seconds(analytics.get("machine_uptime", "0:00:00"))
+    machine_downtime = hms_to_seconds(analytics.get("machine_downtime", "0:00:00"))
+    non_downtime = hms_to_seconds(analytics.get("non_downtime", "0:00:00"))
+    planned_runtime = hms_to_seconds(analytics.get("planned_runtime", "0:00:00"))
+
+    print("\n--- BEFORE EDIT ---")
+    print(f"planned_runtime     = {planned_runtime}")
+    print(f"machine_uptime      = {machine_uptime}")
+    print(f"machine_downtime    = {machine_downtime}")
+    print(f"non_downtime        = {non_downtime}")
+    print(f"total_runtime       = {total_runtime}")
+    print("--------------------\n")
+
+    # Case 1: Active log (still running)
+    if last_log["start_time"] and not last_log["stop_time"]:
+        start = datetime.fromisoformat(last_log["start_time"])
+        duration = (now - start).total_seconds()
+        print(f"🟢 Active log — duration since start: {duration:.2f} sec")
+
+        planned_runtime += duration
+        machine_uptime += duration
+        total_runtime += duration
+
+    # Case 2: Last log is closed, machine still stopped
+    elif last_log["start_time"] and last_log["stop_time"]:
+        end = datetime.fromisoformat(last_log["stop_time"])
+        duration = (now - end).total_seconds()
+        cause = last_log["reason"]
+        print(f"🔴 Closed log — duration since end: {duration:.2f} sec | Cause: {cause}")
+
+        planned_runtime += duration
+
+        if cause == "Machine Related":
+            machine_downtime += duration
+        elif cause == "Non-Machine Related":
+            non_downtime += duration
+            machine_uptime += duration
+        elif cause == "Cycle Running":
+            machine_uptime += duration
+            total_runtime += duration
+
+    # Update dict
+    analytics.update({
+    "planned_runtime": seconds_to_hms(int(planned_runtime)),
+    "machine_uptime": seconds_to_hms(int(machine_uptime)),
+    "machine_downtime": seconds_to_hms(int(machine_downtime)),
+    "non_downtime": seconds_to_hms(int(non_downtime)),
+    "total_runtime": seconds_to_hms(int(total_runtime))
+    })
+
+    print("\n--- AFTER EDIT ---")
+    print(f"planned_runtime     = {analytics['planned_runtime']}")
+    print(f"machine_uptime      = {analytics['machine_uptime']}")
+    print(f"machine_downtime    = {analytics['machine_downtime']}")
+    print(f"non_downtime        = {analytics['non_downtime']}")
+    print(f"total_runtime       = {analytics['total_runtime']}")
+    print("--------------------\n")
+
+    return analytics
