@@ -217,7 +217,7 @@ def auto_record_stop():
 
 # Handle list of causes
     if isinstance(cause, list) and len(cause) > 1:
-        print("brochacho no way")
+
         multiple_causes = ",".join(cause)
         cause = "unconfirmed"
 
@@ -226,6 +226,7 @@ def auto_record_stop():
         cause = cause[0]
 
 # Now handle special logic
+#these causes were determined to need comments to explain them 
     if cause == "other":
         need_comment = True
     elif cause == "quality_stop":
@@ -315,8 +316,8 @@ def end_shift():
    print("do we get here")
    is_parts_in = get_unfinished_parts(inserted) #check if we already have them in storage db 
    if not is_parts_in:
-     parts = get_total_parts()
-     rejects = get_total_rejects()
+     parts = grab_total_parts()
+     rejects = grab_total_rejects()
      parts = adjust_real_parts(parts)
      rejects = adjust_real_rejects(rejects) 
      update_unfinished_parts(planned_id, parts, rejects)
