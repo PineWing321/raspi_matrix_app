@@ -12,7 +12,7 @@ function App() {
       <Route path="/" element={<HistoryMain />} />
 
       {/* Shift Manager (if needed later) */}
-      <Route path="/manager" element={<ShiftManager />} />
+      <Route path="/shift_manager" element={<EditShift />} />
 
       {/* History navigation */}
       <Route path="/history" element={<HistoryMain />} />
