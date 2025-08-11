@@ -196,7 +196,66 @@ console.log("blocked_seconds", blockedSeconds)
     });
 </script>
 
-    </script>
+    <script>
+    const DID_EDIT = {{ is_edited | default(false) | tojson }};
+
+    function parseTimeFromElement(id) {
+        const el = document.getElementById(id);
+        if (!el) return 0;
+        const parts = el.textContent.trim().split(":").map(Number);
+        if (parts.length !== 3 || parts.some(isNaN)) return 0;
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+     console.log("so is this block running at all", KEY_PREFIX)
+     
+     if(KEY_PREFIX && DID_EDIT){
+        console.log("🔁 Reinitializing after edit");
+         
+        // Grab base metrics from the DOM 
+        const runtime = parseTimeFromElement("total_runtime");
+        const uptime = parseTimeFromElement("machine_uptime");
+        const planned = parseTimeFromElement("planned_runtime");
+        const machineDown = parseTimeFromElement("machine_downtime");
+        const nonDown = parseTimeFromElement("non_machine_downtime");
+
+        // Reset localStorage
+        const keysToClear = [
+            "_base_runtime",
+            "_base_machine_uptime",
+            "_base_non_downtime",
+            "_base_machine_downtime",
+            "_planned_runtime",
+            "_downtimeStart",
+            "_init_clock",
+            "_init_downtime"
+        ];
+        keysToClear.forEach(suffix => {
+            localStorage.removeItem(`${KEY_PREFIX}${suffix}`);
+        });
+
+        // Store corrected values
+        localStorage.setItem(`${KEY_PREFIX}_base_runtime`, runtime);
+        localStorage.setItem(`${KEY_PREFIX}_base_machine_uptime`, uptime);
+        localStorage.setItem(`${KEY_PREFIX}_base_machine_downtime`, machineDown);
+        localStorage.setItem(`${KEY_PREFIX}_base_non_downtime`, nonDown);
+        localStorage.setItem(`${KEY_PREFIX}_planned_runtime`, planned);
+
+        // Set init flags
+        localStorage.setItem(`${KEY_PREFIX}_init_clock`, "{{ 'true' if clock_running else 'false' }}");
+        localStorage.setItem(`${KEY_PREFIX}_init_downtime`, "{{ 'false' if clock_running else 'true' }}");
+
+        // Re-render UI immediately
+        updateUptimeDisplay(runtime, uptime, planned);
+        updateDowntimeDisplay(nonDown, machineDown, planned, uptime);
+        updatePartDisplay(planned);
+
+        // Restart ticking loop
+        
+    }
+
+    
+</script>
+
     <script>
     // Ensure the flag is initialized
     if (window.isReactActive === undefined) {
