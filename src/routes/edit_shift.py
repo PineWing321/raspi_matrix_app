@@ -42,7 +42,7 @@ def end_shift():
                 log["stop_time"],
                 reason, cause, comment, part_count
             )
-            return redirect("/index")
+            return redirect(f"/index?edited={True}")
         except Exception as e:
             print(f"[ERROR] Failed to update shift: {e}")
             return render_template("edit_shift.html", log=log, error="Could not save changes.", need_comment=need_comment)
@@ -64,7 +64,7 @@ def edit_multiple_causes():
         cause = request.form.get("cause")
         
         update_shift_cause_reason_comment(shift_id, cause, reason, comment)
-        return redirect("/index")
+        return redirect(f"/index?edited={True}")
     multiple_causes = request.args.get("multiple_causes") 
     
     log = get_log_for_shift(auth_id, planned_id, shift_id) 
