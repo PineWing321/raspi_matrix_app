@@ -1,0 +1,131 @@
+ Pi ↔ PLC Logic: Current State (as of today)
+Pi Polling Loop (every 1 second):
+1.	Polls the PLC for:
+o	Running bit
+o	Parts bit
+o	Rejects bit
+2.	If Running == true:
+o	Pi also polls Starved and Blocked status bits.
+3.	If Running transitions from true → false:
+o	This is marked as a stop.
+o	Pi immediately requests the Event Bit Array (EBA) from the PLC. This EBA encodes 9 pre-classified causes (e.g., E-stop, fence fault, etc.).
+4.	If EBA == 0:
+o	The stop is marked as "Other" (unclassified).
+o	If multiple bits are active, all causes are displayed and the user is prompted to select the true cause.
+5.	Analytics calculated from this loop:
+o	Uptime / Downtime
+o	OEE
+o	Availability
+o	Etc.
+
+Clarifying "Running" and "Stopped" Definitions (Data Collection Perspective)
+Pre-Meeting Definition (Pi-side understanding):
+•	Running =
+  ✓ No active faults/errors requiring intervention
+  ✓ Machine is in Auto Mode
+  ✓ Operator has initiated Start
+
+•	Stopped =
+  ✓ Not Running (!Running), or
+  ✓ Presence of faults/errors, or
+  ✓ Not in Auto Mode, or
+  ✓ Operator has not pressed Start
+Meeting Goal:
+Confirm that PLC logic will encode these same definitions in a dedicated bit called Pi_Running.
+
+ Final PLC Requirements
+1.	Define a bit called Pi_Running
+ This bit will represent the machine's state exclusively for the Pi’s data collection needs, based on the definition above.
+2.	Pi_Running must flip from true → false when any of the 9 defined causes are triggered.
+ ✓ Each of these 9 causes must always cause a stop
+ ✓ This ensures analytics integrity and proper stop attribution
+3.	It is acceptable for Pi_Running to flip from true → false for other, unclassified reasons.
+ ✓ Not every stop will have an EBA cause
+ ✓ This allows flexibility for unexpected events or manual operator actions
+4.	Restating for clarity:
+✅ All 9 causes must always stop the machine (Pi_Running = false)
+❌ But not all stops must be due to those 9 causes
+-
+
+Potential double robot solution:
+-Reduced capacity state-tracks initial reason code
+-reduced capacity flag turned on if one of two robots gets stopped
+Starved and Blocked 
+Split truth 
+PLC side Pi side
+-a sensor audits can occur, but production can continue 
+
+Tier 2
+-blocked, starved, 
+
+Tier 1
+Single process- single cell 
+-Fence open
+-E stop
+-robot collision 
+-missed pick 
+-missed place
+
+Tier list side 
+A tier side for the pre-determined tier 
+-	Set causes in each tier
+-	set behavior for each tier
+-	
+
+
+Tier 3:
+-4 new causes ( new feature) 
+-Sales define limitations 4 custom signals, 4 event signals, defined by the plc 
+-EVENT BIT ARRAY needs to be adjusted based on added custom signals
+-PLC cause data structure?
+Integer values, or bit value
+Polaris and Data Matrix should share plc standard
+
+Tier3  vs Tier4:	
+Tier 4 = changing the Pi side code 
+Tier 3 = no changes to the pi side code 
+Tier3: viewing the entire cell/system as one process 
+Tier3: Only track downtime events that cause stops. 
+STARVED VS BLOCKED
+AUTOMATION CAN’T RUN DUE TO MISSING PARTS = Starved
+AUTOMATION UNABLE TO MOVE FORWARD DUE TO DOWNSTREAM NOT CLEARED = Blocked
+Limited capacity state = new feature, add on the custom signals 
+Limited capacity state: sum of the components in the black box is not at 100% or 0%
+ Including if an operator skips a station, 
+Cycle time: grabbing from plc instead of requiring user input
+Multiple part types? how to accurately track cycle times?
+-	Need a rated cycle time for the part type
+-	Need to pull the tag from the plc to determine cycle time
+-	
+
+History analysis: 
+All on Pi side: PLC will have no log requirements. 
+
+
+1.)	No Conversation between datamatrix and project engineers
+2.)	Must work on all cells on the floor
+3.)	Needs a dedicated subnet
+4.)	Can be implemented by anyone on the project
+5.)	Primarily meant for the customer
+
+
+
+Meeting Results:
+A.	Controls proposes the move to a 5-tier alarm system to capture events and states effectively
+1.	Level 1: Immediate faults
+i.	Drops auto cycle
+ii.	Safety Faults, Comms Loss
+2.	Level 2: Non-Recoverable Fault
+i.	Raises End of Cycle
+ii.	Non recoverable process faults
+iii.	Most likely will have to enter cell to resolve fault
+iv.	Prevent Cycle Start
+3.	Level 3: Recoverable Faults
+i.	Fault that can be recoverable without dropping cycle
+ii.	Will not generate an End of Cycle
+iii.	Prevent Cycle Start
+4.	Level 4: Warnings
+i.	Does not prevent Cycle start
+ii.	Material low, robot not at full speed, blocked outfeed
+5.	Level 5: Prompt
+i.	Message to give operator direction
