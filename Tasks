@@ -1,0 +1,82 @@
+Task #1 Week 1. 
+ONBOARDING
+Document these following steps in a readme, for future devs (more likely me lmao)
+
+WHATS EXPECTED IN THE README FILE:
+-document key steps for new devs 
+-paste and note key commands and steps 
+-document any errors that come up 
+
+Overall task preview
+-All dependencies, libraries, and 
+-Clone the repo Locally (zip and unzip code)
+-Install VS code if not already installed 
+-Create python virtual environment 
+-install requirements (check requirements.txt) 
+-Run the backend (flask run) (not that important)
+-Run the frontend(npm start) (not that important)
+-confirm the UI loads and connects
+
+
+
+THINGS I EXPECT TO HAPPEN
+-A missing dependency 
+-Virtual env no activated (use source venv/bin/activate)
+-pycomm 3 error, simply use pip install pycomm3
+
+Steps:
+1. unzip and get this repo locally on your hard drive
+2. Install Python 3.10+
+3. Install Node.js and npm 
+4. install GIT 
+
+Create & activate a virtual env
+
+  macOS/Linux:
+
+  python3 -m venv venv
+  source venv/bin/activate
+
+
+  Windows (PowerShell):
+
+  py -3 -m venv venv
+  .\venv\Scripts\Activate.ps1 
+
+Install python deps 
+(NOTE, pycomm3 is not in here so you will need to do pip install pycomm3 in terminal)
+
+pip install --upgrade pip
+pip install -r requirements.txt
+
+run python app.py, this boots the app up on a local server 
+
+it will likely cause errors IMPORTANT:
+document any errors caused up to this point, including error messages
+in the terminal and fixes 
+
+ModuleNotFoundError: flask → pip install flask
+
+ModuleNotFoundError: flask_cors → pip install flask-cors
+
+python: command not found → use python3 (mac/Linux) or py (Windows)
+
+virtualenv not active → re-run source venv/bin/activate (mac/Linux) or .\venv\Scripts\Activate.ps1 (Win)
+
+Port already in use → stop previous process or run flask run -p 5001
+
+dotenv/env vars missing → create .env with placeholders you see referenced in code (e.g., FLASK_ENV=development)
+
+SQLite file path / migration errors → look for an init function or first-run script; if missing, a
+
+
+ENDPOINT: get the app running on the localhost URL and you are good, 
+DELIVERABLE: README file completed with whats expected (see top)
+
+IF STUCK: Use chatgpt of course, if in a pickle however shoot me a text
+
+
+KEYS TO SUCCESS:
+-grit, this is the most tedious part of the project, setting up environments 
+and navigating the structure will be annoying, but its not intellectually demanding 
+
